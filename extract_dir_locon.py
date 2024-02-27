@@ -16,6 +16,7 @@
 
 import argparse
 import pathlib
+import shutil
 import subprocess
 
 
@@ -34,7 +35,7 @@ def main() -> None:
     target_dir: pathlib.Path = args.target_dir
 
     for ckpt in ckpt_dir.glob("*.safetensors"):
-        target_file = target_dir / f"{ckpt.name}_locon-r90.safetensors"
+        target_file = target_dir / f"{ckpt.stem}_locon-r90.safetensors"
 
         params = [
             "python",
@@ -56,6 +57,25 @@ def main() -> None:
         ]
         print("Processing:", ckpt)
         subprocess.run(params, check=True)
+
+        # copy preview file
+        preview_path = target_file.with_suffix(".preview.png")
+        preview_file = ckpt.with_suffix(".preview.png")
+
+        if preview_file.exists():
+            shutil.copyfile(preview_file, preview_path)
+
+        # copy thumbnail file
+        thumbnail_path = target_file.with_suffix(".webp")
+        thumbnail_file = ckpt.with_suffix(".webp")
+        if thumbnail_file.exists():
+            shutil.copyfile(thumbnail_file, thumbnail_path)
+
+        # copy civitai info
+        civitai_path = target_file.with_suffix(".civitai.info")
+        civitai_file = ckpt.with_suffix(".civitai.info")
+        if civitai_file.exists():
+            shutil.copyfile(civitai_file, civitai_path)
 
 
 if __name__ == "__main__":
