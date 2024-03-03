@@ -50,7 +50,7 @@ def main() -> None:
             "0.9",
             "--conv_ratio",
             "0.9",
-            "--use_sparse_bias",
+            # "--use_sparse_bias",
             str(base_ckpt),
             str(ckpt),
             str(target_file),
