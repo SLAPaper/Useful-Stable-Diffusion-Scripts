@@ -25,8 +25,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="tool to bake vae into sdxl checkpoint"
     )
-    parser.add_argument("checkpoint_file", type=pathlib.Path)
     parser.add_argument("vae_file", type=pathlib.Path)
+    parser.add_argument("checkpoint_file", type=pathlib.Path)
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--dtype", type=str, default="float16")
 
