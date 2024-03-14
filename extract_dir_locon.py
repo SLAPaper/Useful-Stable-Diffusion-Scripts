@@ -28,6 +28,7 @@ def main() -> None:
     parser.add_argument("checkpoint_dir", type=pathlib.Path)
     parser.add_argument("target_dir", type=pathlib.Path)
     parser.add_argument("--lyco-dir", type=pathlib.Path, default="LyCORIS")
+    parser.add_argument("--sdxl", action="store_true", default=False)
 
     args = parser.parse_args()
     base_ckpt: pathlib.Path = args.base_checkpoint
@@ -40,7 +41,12 @@ def main() -> None:
         params = [
             "python",
             str(args.lyco_dir / "tools" / "extract_locon.py"),
-            "--is_sdxl",
+        ]
+
+        if args.sdxl:
+            params += ["--is_sdxl"]
+
+        params += [
             "--device",
             "cuda",
             "--mode",
