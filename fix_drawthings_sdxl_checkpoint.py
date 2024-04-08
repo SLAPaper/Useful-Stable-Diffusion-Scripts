@@ -35,11 +35,11 @@ def main() -> None:
 
     data: dict[str, torch.Tensor] = {}
 
-    with stt.safe_open(reference_file, framework="pt", device=device) as f:
+    with stt.safe_open(reference_file, framework="pt", device=device) as f:  # type: ignore
         for k in f.keys():
             data[k] = f.get_tensor(k)
 
-    with stt.safe_open(ckpt_file, framework="pt", device=device) as f:
+    with stt.safe_open(ckpt_file, framework="pt", device=device) as f:  # type: ignore
         for k in f.keys():
             if k in data:
                 tensor = f.get_tensor(k)

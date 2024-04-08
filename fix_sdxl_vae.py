@@ -37,11 +37,11 @@ def main() -> None:
     dtype: str = args.dtype
 
     data: dict[str, torch.Tensor] = {}
-    with st.safe_open(ckpt_file, framework="pt", device=device) as f:
+    with st.safe_open(ckpt_file, framework="pt", device=device) as f:  # type: ignore
         for key in f.keys():
             data[key] = f.get_tensor(key).to(dtype=getattr(torch, dtype))
 
-    with st.safe_open(vae_file, framework="pt", device=device) as f:
+    with st.safe_open(vae_file, framework="pt", device=device) as f:  # type: ignore
         for key in f.keys():
             data[f"first_stage_model.{key}"] = f.get_tensor(key).to(
                 dtype=getattr(torch, dtype)
