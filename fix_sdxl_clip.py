@@ -14,6 +14,7 @@
 """fix clip in sdxl"""
 
 import argparse
+import logging
 import pathlib
 import typing as tg
 
@@ -21,12 +22,51 @@ import safetensors as st
 import safetensors.torch as stt
 import torch
 
+# Set up logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+formatter = logging.Formatter(
+    "%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s"
+)
+ch.setFormatter(formatter)
+logger.addHandler(ch)
+
 
 class SafeOpenStub(dict[str, torch.Tensor]):
     """Stub for return object of safetensors.safe_open"""
 
     def get_tensor(self, key: str) -> torch.Tensor:
         raise NotImplementedError()
+
+
+POS_IDS_KEY = "conditioner.embedders.0.transformer.text_model.embeddings.position_ids"
+LOGIT_SCALE_KEY = "conditioner.embedders.1.model.logit_scale"
+
+
+def try_fix_file(file: pathlib.Path) -> None:
+    """try to fix file if it is a sdxl clip"""
+    model = tg.cast(SafeOpenStub, st.safe_open(file, framework="pt"))
+    model_keys = set(model.keys())
+
+    if all((POS_IDS_KEY in model_keys, LOGIT_SCALE_KEY in model_keys)):
+        logger.info(f"no need to fix {file.name}")
+        return
+    logger.info(f"try fixing {file.name}")
+
+    data = {}
+    for key in model.keys():
+        data[key] = model.get_tensor(key)
+
+    data[POS_IDS_KEY] = torch.Tensor([list(range(77))]).to(dtype=torch.int64)
+
+    if LOGIT_SCALE_KEY not in data:
+        data[LOGIT_SCALE_KEY] = torch.tensor(
+            4.6055, dtype=torch.float16  # value from sd_xl base 1.0
+        )
+
+    stt.save_file(data, file.with_stem(f"{file.stem}-fixed"))
 
 
 def main() -> None:
@@ -38,22 +78,11 @@ def main() -> None:
     args = parser.parse_args()
     file: pathlib.Path = args.safetensor_file
 
-    data = {}
-    model = tg.cast(SafeOpenStub, st.safe_open(file, framework="pt"))
-
-    for key in model.keys():
-        data[key] = model.get_tensor(key)
-
-    data["conditioner.embedders.0.transformer.text_model.embeddings.position_ids"] = (
-        torch.Tensor([list(range(77))]).to(dtype=torch.int64)
-    )
-
-    if "conditioner.embedders.1.model.logit_scale" not in data:
-        data["conditioner.embedders.1.model.logit_scale"] = torch.tensor(
-            4.6055, dtype=torch.float16  # value from sd_xl base 1.0
-        )
-
-    stt.save_file(data, file.with_stem(f"{file.stem}-fixed"))
+    if file.is_dir():
+        for f in file.glob("*.safetensors"):
+            try_fix_file(f)
+    else:
+        try_fix_file(file)
 
 
 if __name__ == "__main__":
