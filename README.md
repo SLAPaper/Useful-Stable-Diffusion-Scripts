@@ -5,6 +5,7 @@ Some random useful scripts for stable diffusion, like fixing clip pos_id, bake v
 ## Scripts
 
 - `convert_ckpt_to_safetensor.py`: Convert SD checkpoint to safetensor format while keeping the orignal dtype
+- `convert_sdxl_to_fp8e4m3.py`: Convert SDXL checkpoint to float8_e4m3fn dtype
 - `extract_dir_locon.py`: Extract SDXL locons from safetensors under specific directory. My common use case is to somehow save some unstable but stylish checkpoints
 - `fix_drawthings_sdxl_checkpoint.py`: Fix SDXL checkpoint from Mac `Draw Things`, so that webui can recognize it
 - `fix_sdxl_clip.py`: Fix SDXL clip pos_id, so that `Model Toolkit` can recognize it

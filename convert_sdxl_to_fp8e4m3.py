@@ -1,18 +1,18 @@
-# Copyright 2023 SLAPaper
+# Copyright 2024 SLAPaper
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+#     https://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""fix clip in sdxl"""
 
+"""Convert SDXL safetensor (unet part) to fp8e4m3 storage type"""
 import argparse
 import logging
 import pathlib
@@ -41,48 +41,56 @@ class SafeOpenStub(dict[str, torch.Tensor]):
         raise NotImplementedError()
 
 
-POS_IDS_KEY = "conditioner.embedders.0.transformer.text_model.embeddings.position_ids"
-LOGIT_SCALE_KEY = "conditioner.embedders.1.model.logit_scale"
+UNET_KEY_PREFIX = "model.diffusion_model."
 
 
-def try_fix_file(file: pathlib.Path) -> None:
-    """try to fix file if it has a broken sdxl clip"""
+def check_can_convert(key: str, tensor: torch.Tensor) -> bool:
+    """check if the tensor can be converted to fp8e4m3 storage type"""
+    if not tensor.dtype.is_floating_point:
+        return False
+
+    if key.startswith(UNET_KEY_PREFIX):
+        return True
+
+    return False
+
+
+def try_convert(file: pathlib.Path) -> None:
+    """try to convert"""
     model = tg.cast(SafeOpenStub, st.safe_open(file, framework="pt"))
-    model_keys = set(model.keys())
 
-    if all((POS_IDS_KEY in model_keys, LOGIT_SCALE_KEY in model_keys)):
-        logger.info(f"no need to fix {file.name}")
-        return
-    logger.info(f"try fixing {file.name}")
+    logger.info(f"try converting {file.name}")
 
     data = {}
+    suffix = "fp8e4m3"
     for key in model.keys():
-        data[key] = model.get_tensor(key)
+        tensor = model.get_tensor(key)
+        if check_can_convert(key, tensor):
+            data[key] = tensor.to(torch.float8_e4m3fn)
+        else:
+            data[key] = tensor
 
-    data[POS_IDS_KEY] = torch.Tensor([list(range(77))]).to(dtype=torch.int64)
-
-    if LOGIT_SCALE_KEY not in data:
-        data[LOGIT_SCALE_KEY] = torch.tensor(
-            4.6055, dtype=torch.float16  # value from sd_xl base 1.0
-        )
-
-    stt.save_file(data, file.with_stem(f"{file.stem}-fixed"))
+    stt.save_file(data, file.with_stem(f"{file.stem}-{suffix}"))
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="tool to fix missing position_ids in sdxl clip"
+        description="tool to convert weight to fp8e4m3 in sdxl unet"
     )
-    parser.add_argument("safetensor_file", type=pathlib.Path)
+    parser.add_argument(
+        "safetensor_file",
+        type=pathlib.Path,
+        help="the path of target file or directory containing target files",
+    )
 
     args = parser.parse_args()
     file: pathlib.Path = args.safetensor_file
 
     if file.is_dir():
         for f in file.glob("*.safetensors"):
-            try_fix_file(f)
+            try_convert(f)
     else:
-        try_fix_file(file)
+        try_convert(file)
 
 
 if __name__ == "__main__":
