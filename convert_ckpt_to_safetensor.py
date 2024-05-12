@@ -14,6 +14,7 @@
 
 import argparse
 import pathlib
+import typing as tg
 
 import safetensors as st
 import safetensors.torch as stt
@@ -29,10 +30,16 @@ def main() -> None:
     args = parser.parse_args()
     ckpt_file: pathlib.Path = args.checkpoint_file
 
-    data: dict[str, dict[str, torch.Tensor]] = torch.load(ckpt_file, weights_only=True)
+    data: dict[str, torch.Tensor | dict[str, torch.Tensor]] = torch.load(ckpt_file, weights_only=True)
+
+    if 'state_dict' not in data:
+        _data = tg.cast(dict[str, torch.Tensor], data)
+    else:
+        _data = tg.cast(dict[str, torch.Tensor], data['state_dict'])
+
 
     stt.save_file(
-        data["state_dict"], ckpt_file.with_name(f"{ckpt_file.stem}.safetensors")
+        _data, ckpt_file.with_name(f"{ckpt_file.stem}.safetensors")
     )
 
 
