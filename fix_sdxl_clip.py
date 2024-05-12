@@ -50,23 +50,45 @@ def try_fix_file(file: pathlib.Path) -> None:
     model = tg.cast(SafeOpenStub, st.safe_open(file, framework="pt"))
     model_keys = set(model.keys())
 
-    if all((POS_IDS_KEY in model_keys, LOGIT_SCALE_KEY in model_keys)):
+    need_fix = False
+    while True:
+        if POS_IDS_KEY not in model_keys:
+            need_fix = True
+            break
+
+        pos_id_key = model.get_tensor(POS_IDS_KEY)
+        if pos_id_key.numel() != 77:
+            need_fix = True
+            break
+
+        if pos_id_key.dtype.is_floating_point:
+            need_fix = True
+            break
+
+        if LOGIT_SCALE_KEY not in model_keys:
+            need_fix = True
+            break
+
+        break
+
+    if need_fix:
+        logger.info(f"try fixing {file.name}")
+
+        data = {}
+        for key in model.keys():
+            data[key] = model.get_tensor(key)
+
+        data[POS_IDS_KEY] = torch.Tensor([list(range(77))]).to(dtype=torch.int64)
+
+        if LOGIT_SCALE_KEY not in data:
+            data[LOGIT_SCALE_KEY] = torch.tensor(
+                4.6055, dtype=torch.float16  # value from sd_xl base 1.0
+            )
+
+        stt.save_file(data, file.with_stem(f"{file.stem}-fixed"))
+    else:
         logger.info(f"no need to fix {file.name}")
         return
-    logger.info(f"try fixing {file.name}")
-
-    data = {}
-    for key in model.keys():
-        data[key] = model.get_tensor(key)
-
-    data[POS_IDS_KEY] = torch.Tensor([list(range(77))]).to(dtype=torch.int64)
-
-    if LOGIT_SCALE_KEY not in data:
-        data[LOGIT_SCALE_KEY] = torch.tensor(
-            4.6055, dtype=torch.float16  # value from sd_xl base 1.0
-        )
-
-    stt.save_file(data, file.with_stem(f"{file.stem}-fixed"))
 
 
 def main() -> None:
