@@ -45,7 +45,9 @@ POS_IDS_KEY = "conditioner.embedders.0.transformer.text_model.embeddings.positio
 LOGIT_SCALE_KEY = "conditioner.embedders.1.model.logit_scale"
 
 
-def try_fix_file(file: pathlib.Path) -> None:
+def try_fix_file(
+    file: pathlib.Path, replace: bool = False, dry_run: bool = False
+) -> None:
     """try to fix file if it has a broken sdxl clip"""
     model = tg.cast(SafeOpenStub, st.safe_open(file, framework="pt"))
     model_keys = set(model.keys())
@@ -72,8 +74,6 @@ def try_fix_file(file: pathlib.Path) -> None:
         break
 
     if need_fix:
-        logger.info(f"try fixing {file.name}")
-
         data = {}
         for key in model.keys():
             data[key] = model.get_tensor(key)
@@ -85,7 +85,25 @@ def try_fix_file(file: pathlib.Path) -> None:
                 4.6055, dtype=torch.float16  # value from sd_xl base 1.0
             )
 
-        stt.save_file(data, file.with_stem(f"{file.stem}-fixed"))
+        if replace:
+            original_file = file.with_stem(f"{file.stem}-original")
+            logger.info(
+                f"try fixing {file.name} and replace it, original file will be renamed to {original_file.name}"
+            )
+
+            if dry_run:
+                return
+
+            file.replace(original_file)
+            stt.save_file(data, file)
+        else:
+            new_file = file.with_stem(f"{file.stem}-fixed")
+            logger.info(f"try fixing {file.name} and save as {new_file.name}")
+
+            if dry_run:
+                return
+
+            stt.save_file(data, new_file)
     else:
         logger.info(f"no need to fix {file.name}")
         return
@@ -96,15 +114,27 @@ def main() -> None:
         description="tool to fix missing position_ids in sdxl clip"
     )
     parser.add_argument("safetensor_file", type=pathlib.Path)
+    parser.add_argument(
+        "--replace",
+        action="store_true",
+        help="replace original file and send original file to trash",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="do not modify files, just print what will be done",
+    )
 
     args = parser.parse_args()
     file: pathlib.Path = args.safetensor_file
+    replace: bool = args.replace
+    dry_run: bool = args.dry_run
 
     if file.is_dir():
         for f in file.glob("*.safetensors"):
-            try_fix_file(f)
+            try_fix_file(f, replace=replace, dry_run=dry_run)
     else:
-        try_fix_file(file)
+        try_fix_file(file, replace=replace, dry_run=dry_run)
 
 
 if __name__ == "__main__":
