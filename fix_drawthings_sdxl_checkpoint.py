@@ -26,7 +26,7 @@ def main() -> None:
     )
     parser.add_argument("ref_file", type=pathlib.Path)
     parser.add_argument("checkpoint_file", type=pathlib.Path)
-    parser.add_argument("--device", type=str, default="cuda")
+    parser.add_argument("--device", type=str, default="cpu")
 
     args = parser.parse_args()
     reference_file: pathlib.Path = args.ref_file
