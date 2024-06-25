@@ -30,12 +30,14 @@ def main() -> None:
     parser.add_argument("--lyco-dir", type=pathlib.Path, default="LyCORIS")
     parser.add_argument("--sdxl", action="store_true", default=False)
     parser.add_argument("--device", type=str, default="cuda")
+    parser.add_argument("--dtype", type=str, default="float16")
 
     args = parser.parse_args()
     base_ckpt: pathlib.Path = args.base_checkpoint
     ckpt_dir: pathlib.Path = args.checkpoint_dir
     target_dir: pathlib.Path = args.target_dir
     device: str = args.device
+    dtype: str = args.dtype
 
     for ckpt in ckpt_dir.glob("*.safetensors"):
         target_file = target_dir / f"{ckpt.stem}_locon-r90.safetensors"
@@ -51,6 +53,8 @@ def main() -> None:
         params += [
             "--device",
             str(device),
+            "--dtype",
+            str(dtype), 
             "--mode",
             "ratio",
             "--safetensors",
