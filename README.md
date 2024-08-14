@@ -10,5 +10,6 @@ Some random useful scripts for stable diffusion, like fixing clip pos_id, bake v
 - `fix_drawthings_sdxl_checkpoint.py`: Fix SDXL checkpoint from Mac `Draw Things`, so that webui can recognize it
 - `fix_sdxl_clip.py`: Fix SDXL clip pos_id, so that `Model Toolkit` can recognize it
 - `fix_sdxl_vae.py`: Bake VAE into SDXL checkpoint without opening webui
-- `generate_civitai_info.py`: Generate empty civitai info under specific directory, so that `Civitai Shortcut` won't complain about missing info
+- `generate_civitai_info.py`: Generate empty `.civitai.info` under specific directory, so that `Civitai Shortcut` won't complain about missing info
+- `group_basemodel.py`: Group models by baseModel in `.civitai.info`
 - `workflow2png.py`: Bake ComfyUI workflow into png, like workflow screenshots
