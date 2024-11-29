@@ -54,7 +54,7 @@ def main() -> None:
             "--device",
             str(device),
             "--dtype",
-            str(dtype), 
+            str(dtype),  # official version LyCORIS does not support dtype selection
             "--mode",
             "ratio",
             "--safetensors",
@@ -62,7 +62,6 @@ def main() -> None:
             "0.9",
             "--conv_ratio",
             "0.9",
-            # "--use_sparse_bias",
             str(base_ckpt),
             str(ckpt),
             str(target_file),
