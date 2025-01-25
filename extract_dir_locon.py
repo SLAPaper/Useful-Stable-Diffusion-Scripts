@@ -22,7 +22,7 @@ import subprocess
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="tool to bake vae into sdxl checkpoint"
+        description="tool to extract locon from checkpoints using LyCORIS"
     )
     parser.add_argument("base_checkpoint", type=pathlib.Path)
     parser.add_argument("checkpoint_dir", type=pathlib.Path)
@@ -31,6 +31,8 @@ def main() -> None:
     parser.add_argument("--sdxl", action="store_true", default=False)
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--dtype", type=str, default="float16")
+    parser.add_argument("--exclude-clip1", action="store_true", default=False, help="exclude clip 1, useful when svd not converge")
+    parser.add_argument("--exclude-clip2", action="store_true", default=False, help="exclude clip 2 (only for SDXL models), useful when svd not converge")
 
     args = parser.parse_args()
     base_ckpt: pathlib.Path = args.base_checkpoint
@@ -39,6 +41,8 @@ def main() -> None:
     device: str = args.device
     dtype: str = args.dtype
 
+    success_ckpts: list[pathlib.Path] = []
+    error_ckpts: list[pathlib.Path] = []
     for ckpt in ckpt_dir.glob("*.safetensors"):
         target_file = target_dir / f"{ckpt.stem}_locon-r90.safetensors"
 
@@ -49,6 +53,12 @@ def main() -> None:
 
         if args.sdxl:
             params += ["--is_sdxl"]
+
+        if args.exclude_clip1:
+            params += ["--exclude-clip1"]
+
+        if args.exclude_clip2:
+            params += ["--exclude-clip2"]
 
         params += [
             "--device",
@@ -67,7 +77,13 @@ def main() -> None:
             str(target_file),
         ]
         print("Processing:", ckpt)
-        subprocess.run(params, check=True)
+
+        try:
+            subprocess.run(params, check=True)
+        except subprocess.CalledProcessError as e:
+            error_ckpts.append(ckpt)
+            print(f"Failed to process {ckpt}: {e}")
+            continue
 
         # copy preview file
         preview_path = target_file.with_suffix(".preview.png")
@@ -87,6 +103,16 @@ def main() -> None:
         civitai_file = ckpt.with_suffix(".civitai.info")
         if civitai_file.exists():
             shutil.copyfile(civitai_file, civitai_path)
+
+        success_ckpts.append(ckpt)
+
+    print("\nSuccessfully processed:")
+    for ckpt in success_ckpts:
+        print(ckpt)
+
+    print("\nFailed to process:")
+    for ckpt in error_ckpts:
+        print(ckpt)
 
 
 if __name__ == "__main__":
