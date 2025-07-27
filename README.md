@@ -13,6 +13,7 @@ Some random useful scripts for stable diffusion, like fixing clip pos_id, bake v
 - `fix_sdxl_vae.py`: Bake VAE into SDXL checkpoint without opening webui
 - `generate_civitai_info.py`: Generate empty `.civitai.info` under specific directory, so that `Civitai Shortcut` won't complain about missing info
 - `group_basemodel.py`: Group models by baseModel in `.civitai.info`
+- `remove_tag_from_exif.py`: Remove specific tags from EXIF data of an image file
 - `set_sdxl_vpred.py`: Set VPred for SDXL checkpoint
 - `test_triton.py`: Test if triton is working on your machine
 - `workflow2png.py`: Bake ComfyUI workflow into png, like workflow screenshots
