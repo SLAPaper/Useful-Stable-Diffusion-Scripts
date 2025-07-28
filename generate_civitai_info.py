@@ -30,7 +30,7 @@ def main(dir: pathlib.Path) -> None:
     """
 
     # 定义文件后缀列表
-    suffixies = [".bin", ".pt", ".ckpt", ".pth", ".safetensors"]
+    suffixies = [".bin", ".pt", ".ckpt", ".pth", ".safetensors", ".gguf"]
 
     # 遍历待处理路径下的所有文件
     for file in it.chain.from_iterable(dir.glob(f"*{suff}") for suff in suffixies):
